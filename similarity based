@@ -1,0 +1,68 @@
+import cv2
+import torch
+import torch.nn as nn
+import torchvision.models as models
+import torchvision.transforms as transforms
+import torch.nn.functional as F
+import numpy as np
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+model = models.resnet50(pretrained=True)
+
+model.fc = nn.Identity()
+model = model.to(device)
+model.eval()
+
+transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Grayscale(num_output_channels=3),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+])
+
+def load_image(path):
+    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        raise ValueError(f"Cannot load image: {path}")
+    _, img = cv2.threshold(img, 0, 255,
+                           cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    return img
+
+def preprocess(path):
+    img = load_image(path)
+    img = transform(img)
+    return img.unsqueeze(0).to(device)
+
+def extract_features(path):
+    img = preprocess(path)
+    with torch.no_grad():
+        features = model(img)
+    features = F.normalize(features, p=2, dim=1)
+    return features
+
+def verify_signature(path1, path2, threshold=0.90):
+    f1 = extract_features(path1)
+    f2 = extract_features(path2)
+
+    similarity = F.cosine_similarity(f1, f2).item()
+
+    verdict = "Genuine" if similarity >= threshold else "Forged"
+
+    return {
+        "similarity": round(similarity, 4),
+        "verdict": verdict
+    }
+
+if __name__ == "__main__":
+    img1 = "D:\\project-vs\\output\\367972\\2091686_1744099099.png"
+    img2 = "D:\\project-vs\\output\\367972\\2091686_1744099096.png"
+
+    result = verify_signature(img1, img2)
+
+    print(result)
