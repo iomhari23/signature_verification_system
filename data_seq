@@ -1,0 +1,63 @@
+import os
+import requests
+
+BASE_URL = "https://timsheet.s3.us-east-2.amazonaws.com/"
+
+INPUT_FILE = "input.txt"  # your file path
+
+def download_image(url, save_path):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            with open(save_path, 'wb') as f:
+                f.write(response.content)
+            print(f"Downloaded: {save_path}")
+        else:
+            print(f"Failed: {url}")
+    except Exception as e:
+        print(f"Error downloading {url}: {e}")
+
+
+def process_file():
+    with open(INPUT_FILE, 'r', encoding='utf-8') as file:
+        for line in file:
+            parts = line.strip().split('\t')  # tab separated
+
+            if len(parts) < 6:
+                continue
+
+            caregiver_code = parts[0]
+            client_signs = parts[3]
+            emp_signs = parts[4]
+
+            # Create directory using caregiver_code
+            dir_path = os.path.join("output", caregiver_code)
+            os.makedirs(dir_path, exist_ok=True)
+
+            # Combine both client + emp signs
+            all_signs = []
+
+            if client_signs:
+                all_signs.extend(client_signs.split(','))
+
+            if emp_signs:
+                all_signs.extend(emp_signs.split(','))
+
+            # Download each image
+            for sign_path in all_signs:
+                sign_path = sign_path.strip()
+
+                # Skip invalid paths
+                if not sign_path or sign_path.startswith("local_development"):
+                    continue
+
+                full_url = BASE_URL + sign_path
+                filename = os.path.basename(sign_path)
+
+                save_path = os.path.join(dir_path, filename)
+
+                download_image(full_url, save_path)
+
+
+if __name__ == "__main__":
+    process_file()
