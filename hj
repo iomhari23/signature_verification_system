@@ -1,0 +1,37 @@
+This is the final execution plan for your Adaptive Signature Verification System scaled for 50,000 users.
+1. The Enrollment Phase (The Foundation)
+Method: Multi-Sample Baseline Collection.
+Action: Collect 20 signatures per user (7 Relaxed, 7 Rushed, 6 Standing).
+Algorithm: Centroid Calculation (Mean Vector).
+Output: Create a Master Vector (Average of all 20) and a Gallery JSON (All 20 individual vectors).
+2. The AI Architecture (The Brain)
+Model Type: Siamese Neural Network.
+Backbone: ResNet-50 or MobileNetV2 (for speed).
+Loss Function: Triplet Loss (to maximize the gap between genuine and forgery).
+Deployment Format: ONNX Runtime (Converts .pth to a high-speed production engine).
+3. Image Pre-Processing (The Cleaning)
+Client-Side: Canvas-to-Tensor Conversion (Done in the browser/app).
+Algorithm 1: Zhang-Suen Thinning (Skeletonization) — Reduces strokes to 1-pixel width.
+Algorithm 2: Min-Max Normalization — Resizes and centers the signature to 224x224 pixels.
+4. Database & Storage Strategy (The Library)
+Database: MySQL with client_srno as the Primary Key.
+Storage Way: Hybrid Schema:
+master_vector: Stored as a Binary BLOB (Fast 1-to-1 matching).
+gallery_vectors: Stored as a JSON Array (Variation lookup).
+Caching: Redis pre-loading of the current shift’s Master Vectors.
+5. Verification Workflow (The Logic)
+Tier 1: Master Match — Compare Live Vector vs. Master Vector using Cosine Similarity.
+If Score > 0.95: Access Granted (Instant).
+Tier 2: Gallery Search — If Tier 1 fails, compare Live Vector against all 20 Gallery Vectors.
+If any score > 0.85: Access Granted.
+Tier 3: Active Learning Update — If Tier 1 was successful, perform a FIFO (First-In-First-Out) update. Replace the oldest gallery vector with the new one.
+6. Scaling for 50k Users (The Performance)
+Method: Asynchronous Processing.
+Strategy: Use a Task Queue (like Celery or RabbitMQ) to handle the "Active Learning" database updates in the background so the user doesn't have to wait at the screen.
+Edge Computing: Perform all image "cleaning" (Pre-processing) on the user's device to save server CPU.
+Summary of Algorithm Names to Use:
+Siamese Network (Feature Extraction)
+Cosine Similarity (Distance Metric)
+Zhang-Suen (Thinning/Skeletonization)
+Centroid/Mean Shift (Master Vector creation)
+FIFO Buffer (Gallery management)
